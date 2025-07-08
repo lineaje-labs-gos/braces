@@ -38,14 +38,16 @@ jobs:
 
       - name: Upload npm install log to Artifactory
         run: |
-          jf rt u "npm-install.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/build_test/${{ github.event.inputs.release_version  }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
+          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+          jf rt u "npm-install.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/build_test/${PROJECT_NAME}-${{ github.event.inputs.release_version  }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
          
       - name: Run tests
         run: npm test 2>&1 | tee npm-test.log
       
       - name: Upload npm test log to Artifactory
         run: |
-          jf rt u "npm-test.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/build_test/${{ github.event.inputs.release_version  }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
+          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+          jf rt u "npm-test.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/build_test/${PROJECT_NAME}-${{ github.event.inputs.release_version  }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
            
      
   security-scan:
@@ -82,7 +84,9 @@ jobs:
           snyk test 2>&1 | tee snyk-report.log
 
       - name: Upload Snyk log to Artifactory
-        run: jf rt u "snyk-report.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/security_scan/${{github.event.inputs.release_version }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
+        run: |
+         PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+         jf rt u "snyk-report.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/security_scan/${PROJECT_NAME}-${{github.event.inputs.release_version }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
 
 
   publish:
@@ -103,14 +107,19 @@ jobs:
       - name: Install JFrog CLI
         run: curl -fL https://install-cli.jfrog.io | sh
 
-      - name: Update package version
-        run: |
-            npm version ${{ github.event.inputs.release_version}} --no-git-tag-version
-
       - name: Read version and package
         run: |
            PACKAGE_FILENAME=$(npm pack --pack-destination ./)
            echo "PACKAGE_FILENAME=$PACKAGE_FILENAME" >> $GITHUB_ENV
+
+      - name: Import GPG private key
+        run: |
+            echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --pinentry-mode loopback
+
+      - name: Sign the .tgz package file
+        run: |
+          gpg --yes --pinentry-mode loopback \
+          --armor --detach-sign --local-user "${{ secrets.GPG_KEY_ID }}" "$PACKAGE_FILENAME"
 
       - name: Configure .npmrc for JFrog
         run: |
@@ -124,5 +133,12 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.JFROG_PASSWORD }}
 
       - name: Upload publish log to Artifactory
-        run: jf rt u "npm-publish.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/publish/${{  github.event.inputs.release_version }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
+        run: |
+         PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+         jf rt u "npm-publish.log" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/logs/publish/${PROJECT_NAME}-${{  github.event.inputs.release_version }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
+
+      - name: Upload signature file to Artifactory
+        run: |
+         PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+         jf rt u "${PACKAGE_FILENAME}.asc" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/signatures/${PROJECT_NAME}-${{ github.event.inputs.release_version }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
 
