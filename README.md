@@ -177,7 +177,7 @@ console.log(braces.expand('a{b}c'));
 
 **Type**: `Number`
 
-**Default**: `65,536`
+**Default**: `10,000`
 
 **Description**: Limit the length of the input string. Useful when the input string is generated or your application allows users to pass a string, et cetera.
 
@@ -291,6 +291,30 @@ console.log(braces('a/b{1,3}/{x,y,z}', {quantifiers: true, expand: true}));
 **Default**: `undefined`
 
 **Description**: Strip backslashes that were used for escaping from the result.
+
+### options.maxBraceDepth
+
+**Type**: `Number`
+
+**Default**: `50`
+
+**Description**: Limit the nesting of braces in the input string. Useful when the input string is containing imbalanced braces which leads to the parser being entered in a loopand cause Memory Exhaustion.
+
+```js
+console.log(braces.parse('{{{{{abc}}}}}', { maxBraceDepth: 3 }));  //=> throws an error
+```
+
+### options.strict
+
+**Type**: `Boolean`
+
+**Default**: `false`
+
+**Description**: Ensure the case when the input string contains imbalanced braces. Throws and error if set to `true`.
+
+```js
+console.log(braces.parse('{{a,b}', { strict: true }));  //=> throws an error
+```
 
 ## What is "brace expansion"?
 
