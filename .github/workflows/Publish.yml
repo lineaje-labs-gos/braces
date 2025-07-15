@@ -140,5 +140,5 @@ jobs:
       - name: Upload signature file to Artifactory
         run: |
          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
-         jf rt u "${PACKAGE_FILENAME}.asc" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/signatures/${PROJECT_NAME}-${{ github.event.inputs.release_version }}/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
+         jf rt u "${PACKAGE_FILENAME}.asc" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/${PROJECT_NAME}/-/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
 
