@@ -9,6 +9,9 @@ on:
       release_version:
         description:  Provide the tag to publish the package
         required: false
+      fixed_cves:
+        description:  Provide the list of CVEs fixed by this version
+        required: false
 
 jobs:
   build_test:
@@ -93,6 +96,11 @@ jobs:
         run: npm publish "$PACKAGE_FILENAME" 2>&1 | tee npm-publish.log
         env:
           NODE_AUTH_TOKEN: ${{ secrets.JFROG_PASSWORD }}
+
+      - name: Set CVE property in Artifactory
+        run: |
+          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+          jf rt sp "${{ secrets.NPM_STAGING_ARTIFACTORY }}/${PROJECT_NAME}/-/${PACKAGE_FILENAME}" "build=${{ github.event.inputs.fixed_cves }}" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token ${{ secrets.JFROG_PASSWORD }}
 
       - name: Upload publish log to Artifactory
         run: |
