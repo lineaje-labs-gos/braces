@@ -97,11 +97,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.JFROG_PASSWORD }}
 
-      - name: Set CVE property in Artifactory
-        run: |
-          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
-          jf rt sp "${{ secrets.NPM_STAGING_ARTIFACTORY }}/${PROJECT_NAME}/-/${PACKAGE_FILENAME}" "build=${{ github.event.inputs.fixed_cves }}" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token ${{ secrets.JFROG_PASSWORD }}
-
       - name: Upload publish log to Artifactory
         run: |
          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
@@ -111,4 +106,10 @@ jobs:
         run: |
          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
          jf rt u "${PACKAGE_FILENAME}.asc" "${{ secrets.NPM_STAGING_ARTIFACTORY }}/${PROJECT_NAME}/-/" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token=${{ secrets.JFROG_PASSWORD }}
+
+      - name: Set CVE property in Artifactory
+        # Property is set on the signature file to prevent multiple calls
+        run: |
+          PROJECT_NAME=${GITHUB_REPOSITORY##*/}
+          jf rt sp "${{ secrets.NPM_STAGING_ARTIFACTORY }}/${PROJECT_NAME}/-/${PACKAGE_FILENAME}.asc" "fixed_cves=${{ github.event.inputs.fixed_cves }}" --url https://${{ secrets.JFROG_HOST_NAME }}/artifactory/ --access-token ${{ secrets.JFROG_PASSWORD }}
 
